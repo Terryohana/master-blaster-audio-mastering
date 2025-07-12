@@ -51,6 +51,7 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
   const [duration, setDuration] = useState(0);
   const [isLiveEQEnabled, setIsLiveEQEnabled] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   
   // Project state
   const [currentProjectName, setCurrentProjectName] = useState(projectName || "");
@@ -222,7 +223,7 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
 
   // Load project data
   useEffect(() => {
-    if (projectData) {
+    if (projectData && !settingsLoaded) {
       console.log("Loading all project data:", projectData);
       
       // Set project name
@@ -278,7 +279,7 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       
       setSettingsLoaded(true);
     }
-  }, [projectData, loadAudioInBothElements]);
+  }, [projectData, loadAudioInBothElements, settingsLoaded]);
   
 
 
@@ -328,6 +329,8 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
         await audioContextRef.current.resume();
       }
       
+      let audioElementToUse = audioElement;
+      
       try {
         console.log("Creating MediaElementSource");
         sourceRef.current = audioContextRef.current.createMediaElementSource(audioElement);
@@ -343,8 +346,32 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
         newAudio.volume = audioElement.volume;
         newAudio.currentTime = audioElement.currentTime;
         
+        // Add event listeners to the new audio element
+        newAudio.addEventListener('timeupdate', () => {
+          if (activeAudioMode === 'eq') {
+            setCurrentTime(newAudio.currentTime);
+          }
+        });
+        
+        newAudio.addEventListener('play', () => {
+          if (activeAudioMode === 'eq') {
+            setIsPlaying(true);
+          }
+        });
+        
+        newAudio.addEventListener('pause', () => {
+          if (activeAudioMode === 'eq') {
+            setIsPlaying(false);
+          }
+        });
+        
+        newAudio.addEventListener('ended', () => {
+          setIsPlaying(false);
+        });
+        
         // Replace the EQ audio element
         eqAudioRef.current = newAudio;
+        audioElementToUse = newAudio;
         
         // Try again with the new element
         sourceRef.current = audioContextRef.current.createMediaElementSource(newAudio);
@@ -419,7 +446,7 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       analyserRef.current = null;
       return false; // Failure
     }
-  }, [compressor, eqBands]);
+  }, [compressor, eqBands, activeAudioMode, setCurrentTime, setIsPlaying]);
 
   // Switch to EQ mode
   const switchToEQMode = useCallback(async () => {
@@ -565,6 +592,21 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
     if (audioFile) {
       console.log("Audio file changed, loading in both elements:", audioFile);
       loadAudioInBothElements(audioFile);
+      
+      // Reset EQ state when audio file changes
+      if (audioContextRef.current) {
+        console.log("Cleaning up audio context due to audio file change");
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+        sourceRef.current = null;
+        filtersRef.current = [];
+        compressorRef.current = null;
+        analyserRef.current = null;
+      }
+      
+      // Always start in normal mode when audio file changes
+      setActiveAudioMode('normal');
+      setIsLiveEQEnabled(false);
     }
   }, [audioFile, loadAudioInBothElements]);
 
@@ -609,9 +651,13 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       filtersRef.current[bandIndex].gain.value = gain;
     }
 
-    // Save settings if project exists
+    // Save settings if project exists, but use a debounced approach
     if (currentProjectId) {
-      saveProjectSettings();
+      // Use setTimeout to debounce the save operation
+      clearTimeout((window as any).saveSettingsTimeout);
+      (window as any).saveSettingsTimeout = setTimeout(() => {
+        saveProjectSettings();
+      }, 500); // Wait 500ms before saving
     }
 
     setTimeout(() => setIsProcessing(false), 100);
@@ -628,9 +674,13 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       compressorRef.current[param].value = value;
     }
 
-    // Save settings if project exists
+    // Save settings if project exists, but use a debounced approach
     if (currentProjectId) {
-      saveProjectSettings();
+      // Use setTimeout to debounce the save operation
+      clearTimeout((window as any).saveSettingsTimeout);
+      (window as any).saveSettingsTimeout = setTimeout(() => {
+        saveProjectSettings();
+      }, 500); // Wait 500ms before saving
     }
 
     setTimeout(() => setIsProcessing(false), 100);
@@ -641,12 +691,17 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
     if (!currentProjectId) return;
     
     try {
+      console.log("Saving project settings...");
       await updateProjectSettings({
         projectId: currentProjectId,
         eqPreset: selectedPreset,
         eqSettings: eqBands,
         compressorSettings: compressor,
       });
+      console.log("Project settings saved successfully");
+      
+      // Don't reload settings after saving
+      setSettingsLoaded(true);
     } catch (error) {
       console.error("Failed to save project settings:", error);
     }
@@ -663,8 +718,14 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       toast.error("Please upload an audio file");
       return;
     }
+    
+    // Show confirmation dialog
+    if (!window.confirm(`Are you sure you want to save "${currentProjectName}" as a new project?`)) {
+      return;
+    }
 
     setIsProcessing(true);
+    toast.loading("Saving project...");
 
     try {
       // Always create a new project
@@ -709,8 +770,14 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
         fileSize: audioFileObj.size,
       });
 
+      toast.dismiss();
       toast.success("Project saved successfully!");
+      
+      // Show a more detailed success message
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 5000);
     } catch (error) {
+      toast.dismiss();
       toast.error("Failed to save project. Please try again.");
       console.error(error);
     } finally {
@@ -833,16 +900,28 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
     
     setSelectedPreset(presetName);
     
-    // Apply EQ settings
+    // Create new EQ bands with preset settings
+    const newBands = [...eqBands];
     preset.settings.forEach((gain, index) => {
-      if (index < eqBands.length) {
-        updateEQ(index, gain);
+      if (index < newBands.length) {
+        newBands[index].gain = gain;
+        
+        // Update audio filter directly
+        if (filtersRef.current[index]) {
+          filtersRef.current[index].gain.value = gain;
+        }
       }
     });
     
+    // Update state once
+    setEqBands(newBands);
+    
     // Save settings if project exists
     if (currentProjectId) {
-      saveProjectSettings();
+      // Delay saving to avoid rapid updates
+      setTimeout(() => {
+        saveProjectSettings();
+      }, 300);
     }
     
     setTimeout(() => setIsProcessing(false), 200);
@@ -868,7 +947,10 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
     
     // Save settings if project exists
     if (currentProjectId) {
-      saveProjectSettings();
+      // Delay saving to avoid rapid updates
+      setTimeout(() => {
+        saveProjectSettings();
+      }, 300);
     }
     
     setTimeout(() => setIsProcessing(false), 200);
@@ -1142,31 +1224,77 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
         </div>
       </div>
       
-      {/* File Upload */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-gray-300 text-sm font-medium">
-            Audio File
-          </label>
+      {/* File Upload - Only show if no project is loaded */}
+      {!currentProjectId && (
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-gray-300 text-sm font-medium">
+              Audio File
+            </label>
+          </div>
           
-          {/* Reload Audio Button */}
-          {projectData?.originalAudioUrl && (
-            <button
-              onClick={loadAudioFromProject}
-              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-              disabled={isLoadingAudio}
-            >
-              {isLoadingAudio ? "Reloading..." : "Reload Audio"}
-            </button>
-          )}
+          <div 
+            className="border-2 border-dashed border-gray-600 rounded-lg p-6 mb-4 text-center hover:border-gray-500 transition-colors cursor-pointer"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const files = e.dataTransfer.files;
+              if (files.length > 0 && files[0].type.startsWith('audio/')) {
+                const file = files[0];
+                const url = URL.createObjectURL(file);
+                setAudioFile(url);
+                setAudioFileObj(file);
+                
+                // Reset audio state when loading new file
+                resetAudioState();
+                
+                // If no project name is set, use the file name without extension
+                if (!currentProjectName) {
+                  const fileName = file.name.replace(/\\.[^/.]+$/, "");
+                  setCurrentProjectName(fileName);
+                }
+              }
+            }}
+          >
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="text-gray-300 text-sm font-medium mb-1">Drag and drop your audio file here</p>
+                <p className="text-gray-500 text-xs">or click to browse</p>
+              </div>
+            </label>
+          </div>
         </div>
-        
-        <input
-          type="file"
-          accept="audio/*"
-          onChange={handleFileUpload}
-          className="mb-4 block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-600 file:text-sm file:font-semibold file:bg-gray-800 file:text-gray-300 hover:file:bg-gray-700"
-        />
+      )}
+      
+      {/* Reload Audio Button - Only show for existing projects */}
+      {currentProjectId && projectData?.originalAudioUrl && (
+        <div className="mb-6">
+          <button
+            onClick={loadAudioFromProject}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+            disabled={isLoadingAudio}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {isLoadingAudio ? "Reloading..." : "Reload Audio"}
+          </button>
+        </div>
+      ))
         
         {audioFile && (
           <div className="p-4 bg-gray-800 rounded-lg border border-gray-600">
@@ -1273,10 +1401,12 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
                         activeElement.currentTime = Math.max(0, activeElement.currentTime - 10);
                       }
                     }}
-                    className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white text-sm transition-all duration-200"
+                    className="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center text-white transition-all duration-200 shadow-md"
                     title="-10s"
                   >
-                    ⏪
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z" />
+                    </svg>
                   </button>
                   
                   <button
@@ -1287,9 +1417,17 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
                         playAudio();
                       }
                     }}
-                    className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-full flex items-center justify-center text-white font-bold text-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="w-12 h-12 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
-                    {isPlaying ? '⏸' : '▶'}
+                    {isPlaying ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </button>
                   
                   <button
@@ -1299,10 +1437,12 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
                         activeElement.currentTime = Math.min(duration, activeElement.currentTime + 10);
                       }
                     }}
-                    className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white text-sm transition-all duration-200"
+                    className="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center text-white transition-all duration-200 shadow-md"
                     title="+10s"
                   >
-                    ⏩
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 6v2.798L4.555 5.168z" />
+                    </svg>
                   </button>
                   
                   <div className="flex items-center gap-2 ml-4">
@@ -1634,28 +1774,49 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-4">
-            {/* Save Project Button */}
-            <button
-              onClick={createProjectAndUpload}
-              className="px-6 py-4 bg-blue-600 text-white rounded font-mono font-bold hover:bg-blue-700 border border-blue-500"
-              disabled={isProcessing || !currentProjectName.trim() || !audioFileObj}
-            >
-              SAVE AS NEW PROJECT
-            </button>
+            {/* Save Project Button - Only show if no project exists or for new audio */}
+            {(!currentProjectId || audioFileObj) && (
+              <button
+                onClick={createProjectAndUpload}
+                className="px-6 py-4 bg-blue-600 text-white rounded font-mono font-bold hover:bg-blue-700 border border-blue-500 flex items-center gap-2"
+                disabled={isProcessing || !currentProjectName.trim() || !audioFileObj}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                </svg>
+                SAVE AS NEW PROJECT
+              </button>
+            )}
             
             {/* Process Button */}
             <button
               onClick={() => setShowProcessDialog(true)}
-              className={`px-6 py-4 text-white rounded font-mono font-bold border ${
+              className={`px-6 py-4 text-white rounded font-mono font-bold border flex items-center gap-2 ${
                 isLiveEQEnabled 
                   ? 'bg-red-600 hover:bg-red-700 border-red-500' 
                   : 'bg-gray-600 border-gray-500 cursor-not-allowed'
               }`}
               disabled={isProcessing || !isLiveEQEnabled}
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
               PROCESS & DOWNLOAD
             </button>
           </div>
+          
+          {/* Save Success Message */}
+          {showSaveSuccess && (
+            <div className="mt-4 p-4 bg-green-600/20 border border-green-500 rounded-lg text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-green-400 font-medium">Project saved successfully!</span>
+              </div>
+              <p className="text-gray-300 text-sm">Your project has been saved and can be accessed from the projects list.</p>
+            </div>
+          )}
         </div>
       )}
 
