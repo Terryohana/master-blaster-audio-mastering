@@ -1,22 +1,29 @@
-import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
-import { Password } from "@convex-dev/auth/providers/Password";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query } from "./_generated/server";
 
-export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password, Anonymous],
-});
-
-export const loggedInUser = query({
+// Simple placeholder for isAdmin function
+export const isAdmin = query({
+  args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      return null;
-    }
-    const user = await ctx.db.get(userId);
-    if (!user) {
-      return null;
-    }
-    return user;
+    // Always return false for now until proper deployment
+    return false;
   },
 });
+
+// Simple placeholder for getUser function
+export const getUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+    
+    // Return basic user info
+    return {
+      _id: "placeholder",
+      email: identity.email,
+      name: identity.name,
+    };
+  },
+});
+

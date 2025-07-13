@@ -1,12 +1,23 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 const applicationTables = {
+  users: defineTable({
+    tokenIdentifier: v.string(),
+    name: v.optional(v.string()),
+    email: v.string(),
+    pictureUrl: v.optional(v.string()),
+    lastSignIn: v.number(),
+  }).index("by_token", ["tokenIdentifier"]),
+  
   userProfiles: defineTable({
     userId: v.id("users"),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
+    role: v.optional(v.union(
+      v.literal("user"),
+      v.literal("admin")
+    )),
     subscriptionTier: v.union(
       v.literal("free"),
       v.literal("starter"),
@@ -56,6 +67,5 @@ const applicationTables = {
 };
 
 export default defineSchema({
-  ...authTables,
   ...applicationTables,
 });

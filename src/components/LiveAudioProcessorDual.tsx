@@ -1216,8 +1216,9 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
             {getProjectStatus()}
             
             {currentProjectId && (
-              <div className="text-xs text-gray-400 mt-1">
-                Project ID: {currentProjectId.slice(0, 8)}...
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-gray-400">Loading...</span>
               </div>
             )}
           </div>
@@ -1301,18 +1302,16 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-medium text-gray-300">Live EQ Processing</h4>
+                {isLiveEQEnabled ? (
+                  <span className="text-green-400">🎛️</span>
+                ) : (
+                  <span className="text-red-400">🛑</span>
+                )}
                 {isLiveEQEnabled && (
                   <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
                     Active
                   </span>
                 )}
-                <button 
-                  onClick={debugAudioState}
-                  className="px-2 py-0.5 bg-gray-700 text-xs text-gray-300 rounded hover:bg-gray-600"
-                  title="Debug audio state in console"
-                >
-                  Debug
-                </button>
               </div>
               {!isLiveEQEnabled ? (
                 <button
@@ -1381,10 +1380,7 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
       {/* Controls */}
       {audioFile && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-sm font-medium">Processing:</span>
-            <div className={`w-3 h-3 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-          </div>
+          {/* Debug display removed */}
 
           {/* Audio Controls & Volume Meter - Sticky */}
           <div className="bg-black p-4 rounded border border-gray-700 sticky top-4 z-10">
@@ -1787,21 +1783,23 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
               </button>
             )}
             
-            {/* Process Button */}
-            <button
-              onClick={() => setShowProcessDialog(true)}
-              className={`px-6 py-4 text-white rounded font-mono font-bold border flex items-center gap-2 ${
-                isLiveEQEnabled 
-                  ? 'bg-red-600 hover:bg-red-700 border-red-500' 
-                  : 'bg-gray-600 border-gray-500 cursor-not-allowed'
-              }`}
-              disabled={isProcessing || !isLiveEQEnabled}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              PROCESS & DOWNLOAD
-            </button>
+            {/* Process Button - Only shown when project is saved */}
+            {currentProjectId && (
+              <button
+                onClick={() => setShowProcessDialog(true)}
+                className={`px-6 py-4 text-white rounded font-mono font-bold border flex items-center gap-2 ${
+                  isLiveEQEnabled 
+                    ? 'bg-red-600 hover:bg-red-700 border-red-500' 
+                    : 'bg-gray-600 border-gray-500 cursor-not-allowed'
+                }`}
+                disabled={isProcessing || !isLiveEQEnabled}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                PROCESS & DOWNLOAD
+              </button>
+            )}
           </div>
           
           {/* Save Success Message */}

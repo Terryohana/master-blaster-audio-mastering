@@ -1,8 +1,8 @@
 export default {
   providers: [
     {
-      domain: process.env.CONVEX_SITE_URL,
-      applicationID: "convex",
+      domain: "sure-terrapin-15.clerk.accounts.dev", // Your Clerk domain from the API key
+      applicationID: "clerk",
     },
   ],
 };

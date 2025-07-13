@@ -1,10 +1,9 @@
-import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { useState, useEffect } from "react";
 import { Dashboard } from "./components/Dashboard";
+import { SimpleDashboard } from "./components/SimpleDashboard";
 import { ProjectsPage } from "./components/ProjectsPage";
 import { SubscriptionPage } from "./components/SubscriptionPage";
 import { ProfilePage } from "./components/ProfilePage";
@@ -12,6 +11,8 @@ import { SplashScreen } from "./components/SplashScreen";
 import { OnboardingFlow } from "./components/OnboardingFlow";
 import LiveAudioProcessorDual from "./components/LiveAudioProcessorDual";
 import { AdminPage } from "./components/AdminPage";
+import { AuthGuard } from "./ClerkAuth";
+import { useAuth } from "@clerk/clerk-react";
 
 type Page = "dashboard" | "projects" | "subscription" | "profile" | "processor" | "admin";
 
@@ -23,6 +24,20 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [processorParams, setProcessorParams] = useState({ projectName: "", projectId: null });
+  const [error, setError] = useState<string | null>(null);
+  const { isSignedIn } = useAuth();
+  
+  // Error boundary
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error("Caught error:", event.error);
+      setError("An error occurred. Please try again later.");
+      event.preventDefault();
+    };
+    
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
+  }, []);
 
   // Load session data on initial render
   useEffect(() => {
@@ -56,13 +71,13 @@ export default function App() {
       setShowSplash(false);
       // Check if user has seen onboarding
       const hasSeenOnboarding = localStorage.getItem("masterblaster-onboarding");
-      if (!hasSeenOnboarding) {
+      if (!hasSeenOnboarding && isSignedIn) {
         setShowOnboarding(true);
       }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isSignedIn]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("masterblaster-onboarding", "true");
@@ -74,6 +89,24 @@ export default function App() {
     setCurrentPage("processor");
   };
 
+  // Show error message if there's an error
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+        <div className="bg-red-900/50 border border-red-700 p-6 rounded-lg max-w-md">
+          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
+          <p className="text-gray-300">{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => window.location.reload()}
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   if (showSplash) {
     return <SplashScreen />;
   }
@@ -84,7 +117,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
-      <Authenticated>
+      <AuthGuard>
         <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
         <main className="flex-1">
           {currentPage === "dashboard" && <Dashboard setCurrentPage={setCurrentPage} navigateToProcessor={navigateToProcessor} />}
@@ -94,19 +127,7 @@ export default function App() {
           {currentPage === "processor" && <LiveAudioProcessorDual projectName={processorParams.projectName} projectId={processorParams.projectId} />}
           {currentPage === "admin" && <AdminPage />}
         </main>
-      </Authenticated>
-
-      <Unauthenticated>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-white mb-2">Master Blaster</h1>
-              <p className="text-gray-300">Professional Audio Mastering</p>
-            </div>
-            <SignInForm />
-          </div>
-        </div>
-      </Unauthenticated>
+      </AuthGuard>
 
       <Toaster theme="dark" />
     </div>
@@ -118,14 +139,8 @@ function Header({ currentPage, setCurrentPage }: {
   setCurrentPage: (page: Page) => void; 
 }) {
   const user = useQuery(api.users.getCurrentUser);
-  const createUserProfile = useMutation(api.users.createUserProfile);
-
-  // Create profile if user exists but has no profile
-  useEffect(() => {
-    if (user && !user.profile) {
-      createUserProfile();
-    }
-  }, [user, createUserProfile]);
+  // Temporarily disable admin check until function is deployed
+  const isAdmin = false; // useQuery(api.auth.isAdmin);
 
   const navItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: "🎵" },
@@ -133,8 +148,12 @@ function Header({ currentPage, setCurrentPage }: {
     { id: "processor" as const, label: "Live EQ", icon: "🎛️" },
     { id: "subscription" as const, label: "Subscription", icon: "💎" },
     { id: "profile" as const, label: "Profile", icon: "👤" },
-    { id: "admin" as const, label: "Admin", icon: "⚙️" },
   ];
+  
+  // Only show admin page to users with admin role
+  if (isAdmin) {
+    navItems.push({ id: "admin" as const, label: "Admin", icon: "⚙️" });
+  }
 
   return (
     <header className="bg-black/30 backdrop-blur-sm border-b border-gray-700">
@@ -164,7 +183,12 @@ function Header({ currentPage, setCurrentPage }: {
             <span className="text-gray-300 hidden sm:block">
               {user?.email}
             </span>
-            <SignOutButton />
+            <button
+              onClick={() => window.location.href = "/user/profile"}
+              className="px-4 py-2 rounded bg-white text-gray-900 border border-gray-200 font-semibold hover:bg-gray-50 transition-colors shadow-sm hover:shadow"
+            >
+              Profile
+            </button>
           </div>
         </div>
       </div>
