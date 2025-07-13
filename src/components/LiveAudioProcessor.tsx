@@ -923,12 +923,12 @@ export default function LiveAudioProcessor({ projectName = "", projectId = null 
           </div>
         )}
 
-        {/* Hidden audio element for playback */}
+        {/* Audio element for playback */}
         {audioFile && (
           <audio
             ref={audioRef}
             src={audioFile}
-            className="hidden"
+            className="w-full mb-4"
             onPlay={() => {
               setIsPlaying(true);
               console.log("Audio playback started");
@@ -940,6 +940,7 @@ export default function LiveAudioProcessor({ projectName = "", projectId = null 
               setDuration(audioRef.current?.duration || 0);
               console.log("Audio metadata loaded, duration:", audioRef.current?.duration);
             }}
+            controls
           />
         )}
       </div>

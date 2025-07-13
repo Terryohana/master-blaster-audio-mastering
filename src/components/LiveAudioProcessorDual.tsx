@@ -1294,9 +1294,9 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
             {isLoadingAudio ? "Reloading..." : "Reload Audio"}
           </button>
         </div>
-      ))
+      )}
         
-        {audioFile && (
+      {audioFile && (
           <div className="p-4 bg-gray-800 rounded-lg border border-gray-600">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -1377,7 +1377,6 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
             />
           </>
         )}
-      </div>
 
       {/* Controls */}
       {audioFile && (
