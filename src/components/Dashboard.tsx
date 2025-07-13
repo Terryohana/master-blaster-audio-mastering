@@ -37,7 +37,7 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
           <div className="flex items-center justify-between">
             <div>
@@ -79,6 +79,24 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
             </div>
           </div>
         </div>
+        
+        {/* Admin Card - Only shown if user is admin */}
+        {localStorage.getItem("adminSession") && (
+          <div className="bg-purple-900/30 backdrop-blur-sm rounded-xl p-6 border border-purple-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-400 text-sm">Admin Panel</p>
+                <p className="text-2xl font-bold text-white">Access</p>
+              </div>
+              <button
+                onClick={() => setCurrentPage("admin")}
+                className="w-12 h-12 bg-purple-800 rounded-lg flex items-center justify-center hover:bg-purple-700 transition-colors"
+              >
+                <span className="text-xl">⚙️</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live EQ Quick Access */}

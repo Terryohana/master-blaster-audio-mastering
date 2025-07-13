@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import App from "./App";
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
+import AdminLogin from "./pages/AdminLogin";
+import { LandingPage } from "./components/LandingPage";
 import { useAuth } from "@clerk/clerk-react";
 
 export default function Router() {
@@ -39,11 +41,14 @@ export default function Router() {
     return <SignUpPage />;
   }
   
-  // If signed in, show the app, otherwise redirect to sign-in
+  if (path === "/admin-login") {
+    return <AdminLogin />;
+  }
+  
+  // If signed in, show the app, otherwise show landing page
   if (isSignedIn) {
     return <App />;
   } else {
-    window.history.pushState({}, "", "/sign-in");
-    return <SignInPage />;
+    return <LandingPage />;
   }
 }

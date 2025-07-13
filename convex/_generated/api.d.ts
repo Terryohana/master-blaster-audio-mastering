@@ -20,6 +20,7 @@ import type * as eqPresets from "../eqPresets.js";
 import type * as http from "../http.js";
 import type * as projects from "../projects.js";
 import type * as router from "../router.js";
+import type * as subscription from "../subscription.js";
 import type * as users from "../users.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   projects: typeof projects;
   router: typeof router;
+  subscription: typeof subscription;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

@@ -231,6 +231,15 @@ export function ProfilePage() {
               <button className="w-full py-2 px-4 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600/30 transition-colors">
                 Delete Account
               </button>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem("adminSession");
+                  window.location.href = "/sign-in";
+                }}
+                className="w-full py-2 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

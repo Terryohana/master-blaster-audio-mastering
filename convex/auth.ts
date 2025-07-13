@@ -1,11 +1,29 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
+import { api } from "./_generated/api";
+import { v } from "convex/values";
 
 // Simple placeholder for isAdmin function
 export const isAdmin = query({
   args: {},
   handler: async (ctx) => {
-    // Always return false for now until proper deployment
-    return false;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return false;
+    
+    // Get user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .first();
+      
+    if (!user) return false;
+    
+    // Check if user has admin role
+    const profile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .unique();
+      
+    return profile?.role === "admin";
   },
 });
 
@@ -27,3 +45,76 @@ export const getUser = query({
   },
 });
 
+// Direct login function for admin
+export const adminLogin = mutation({
+  args: {
+    email: v.string(),
+    password: v.string()
+  },
+  handler: async (ctx, args) => {
+    // Check if email and password match admin credentials
+    if (args.email === "methodman@mail.com" && args.password === "12345678") {
+      // Create or update admin user
+      let user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .first();
+      
+      if (!user) {
+        // Create new admin user
+        const userId = await ctx.db.insert("users", {
+          tokenIdentifier: `admin:${args.email}`,
+          email: args.email,
+          name: "Admin User",
+          lastSignIn: Date.now()
+        });
+        
+        // Create admin profile
+        await ctx.db.insert("userProfiles", {
+          userId,
+          role: "admin",
+          subscriptionTier: "unlimited",
+          tracksUsed: 0,
+          storageUsed: 0
+        });
+        
+        user = await ctx.db.get(userId);
+      } else {
+        // Update last sign in
+        await ctx.db.patch(user._id, {
+          lastSignIn: Date.now()
+        });
+        
+        // Ensure user has admin profile
+        const profile = await ctx.db
+          .query("userProfiles")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .unique();
+          
+        if (!profile) {
+          await ctx.db.insert("userProfiles", {
+            userId: user._id,
+            role: "admin",
+            subscriptionTier: "unlimited",
+            tracksUsed: 0,
+            storageUsed: 0
+          });
+        } else if (profile.role !== "admin") {
+          await ctx.db.patch(profile._id, {
+            role: "admin"
+          });
+        }
+      }
+      
+      return {
+        success: true,
+        user
+      };
+    }
+    
+    return {
+      success: false,
+      error: "Invalid email or password"
+    };
+  }
+});

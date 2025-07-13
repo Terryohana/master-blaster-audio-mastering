@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { api } from "./_generated/api";
+import { SUBSCRIPTION_LIMITS } from "./subscription";
 
 export const listProjects = query({
   args: {
@@ -8,8 +9,19 @@ export const listProjects = query({
     eqPreset: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) return [];
+    
+    const userId = user._id;
 
     let query = ctx.db.query("projects").withIndex("by_user", (q) => q.eq("userId", userId));
 
@@ -50,8 +62,19 @@ export const getProject = query({
     projectId: v.id("projects"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) return null;
+    
+    const userId = user._id;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.userId !== userId) {
@@ -78,26 +101,40 @@ export const createProject = mutation({
     compressorSettings: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) throw new Error("User not found");
+    
+    const userId = user._id;
 
-    // Check subscription limits
+    // Check if user can create a project
+    const canCreate = await ctx.runQuery(api.subscription.canCreateProject);
+    if (!canCreate.allowed) {
+      throw new Error(canCreate.reason);
+    }
+
+    // Get user profile
     const profile = await ctx.db
       .query("userProfiles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (!profile) throw new Error("Profile not found");
-
-    const limits = {
-      free: 10,
-      starter: 25,
-      pro: 50,
-      unlimited: 100,
-    };
-
-    if (profile.tracksUsed >= limits[profile.subscriptionTier]) {
-      throw new Error("Track limit reached for your subscription tier");
+    
+    const now = Date.now();
+    
+    // Calculate expiry date for free tier
+    let expiresAt = null;
+    if (profile.subscriptionTier === "free") {
+      expiresAt = now + (SUBSCRIPTION_LIMITS.free.expiryDays * 24 * 60 * 60 * 1000);
     }
 
     const projectId = await ctx.db.insert("projects", {
@@ -107,6 +144,13 @@ export const createProject = mutation({
       eqSettings: args.eqSettings || null,
       compressorSettings: args.compressorSettings || null,
       status: "uploading",
+      createdAt: now,
+      expiresAt,
+    });
+    
+    // Update last project created timestamp
+    await ctx.db.patch(profile._id, {
+      lastProjectCreated: now
     });
 
     return projectId;
@@ -123,8 +167,19 @@ export const updateProjectSettings = mutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) throw new Error("User not found");
+    
+    const userId = user._id;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.userId !== userId) {
@@ -150,8 +205,19 @@ export const updateProjectAudio = mutation({
     fileSize: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) throw new Error("User not found");
+    
+    const userId = user._id;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.userId !== userId) {
@@ -184,8 +250,19 @@ export const deleteProject = mutation({
     projectId: v.id("projects"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) throw new Error("User not found");
+    
+    const userId = user._id;
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.userId !== userId) {
@@ -207,8 +284,25 @@ export const deleteProject = mutation({
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+      
+    if (!user) throw new Error("User not found");
+    
+    // Check storage limits
+    const subscription = await ctx.runQuery(api.subscription.getUserSubscription);
+    if (!subscription) throw new Error("Subscription not found");
+    
+    if (subscription.storageUsed >= subscription.storageLimit) {
+      throw new Error(`Storage limit reached (${Math.round(subscription.storageUsed / (1024 * 1024))}MB/${Math.round(subscription.storageLimit / (1024 * 1024))}MB)`);
+    }
     
     return await ctx.storage.generateUploadUrl();
   },

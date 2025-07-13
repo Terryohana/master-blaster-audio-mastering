@@ -8,7 +8,8 @@ const applicationTables = {
     email: v.string(),
     pictureUrl: v.optional(v.string()),
     lastSignIn: v.number(),
-  }).index("by_token", ["tokenIdentifier"]),
+  }).index("by_token", ["tokenIdentifier"])
+    .index("by_email", ["email"]),
   
   userProfiles: defineTable({
     userId: v.id("users"),
@@ -25,7 +26,34 @@ const applicationTables = {
       v.literal("unlimited")
     ),
     tracksUsed: v.number(),
+    storageUsed: v.optional(v.number()),
     subscriptionExpiry: v.optional(v.number()),
+    subscriptionId: v.optional(v.id("subscriptions")),
+    lastProjectCreated: v.optional(v.number()),
+  }).index("by_user", ["userId"]),
+  
+  subscriptions: defineTable({
+    userId: v.id("users"),
+    tier: v.union(
+      v.literal("free"),
+      v.literal("starter"),
+      v.literal("pro"),
+      v.literal("unlimited")
+    ),
+    billingCycle: v.union(
+      v.literal("monthly"),
+      v.literal("annual")
+    ),
+    startDate: v.number(),
+    expiryDate: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("canceled"),
+      v.literal("expired")
+    ),
+    paymentMethodId: v.optional(v.string()),
+    price: v.number(),
+    canceledDate: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
   projects: defineTable({
@@ -45,10 +73,13 @@ const applicationTables = {
     ),
     duration: v.optional(v.number()),
     fileSize: v.optional(v.number()),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_status", ["userId", "status"])
-    .index("by_user_and_preset", ["userId", "eqPreset"]),
+    .index("by_user_and_preset", ["userId", "eqPreset"])
+    .index("by_expiry", ["expiresAt"]),
 
   eqPresets: defineTable({
     name: v.string(),

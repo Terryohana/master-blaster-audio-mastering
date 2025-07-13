@@ -13,6 +13,8 @@ import LiveAudioProcessorDual from "./components/LiveAudioProcessorDual";
 import { AdminPage } from "./components/AdminPage";
 import { AuthGuard } from "./ClerkAuth";
 import { useAuth } from "@clerk/clerk-react";
+import { AdminReturnBanner } from "./components/AdminReturnBanner";
+import { isAdmin } from "./utils/authHelpers";
 
 type Page = "dashboard" | "projects" | "subscription" | "profile" | "processor" | "admin";
 
@@ -125,11 +127,12 @@ export default function App() {
           {currentPage === "subscription" && <SubscriptionPage />}
           {currentPage === "profile" && <ProfilePage />}
           {currentPage === "processor" && <LiveAudioProcessorDual projectName={processorParams.projectName} projectId={processorParams.projectId} />}
-          {currentPage === "admin" && <AdminPage />}
+          {currentPage === "admin" && isAdmin && <AdminPage />}
         </main>
       </AuthGuard>
 
       <Toaster theme="dark" />
+      <AdminReturnBanner />
     </div>
   );
 }
@@ -139,8 +142,22 @@ function Header({ currentPage, setCurrentPage }: {
   setCurrentPage: (page: Page) => void; 
 }) {
   const user = useQuery(api.users.getCurrentUser);
-  // Temporarily disable admin check until function is deployed
-  const isAdmin = false; // useQuery(api.auth.isAdmin);
+  // Check if user is admin from localStorage
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const adminSession = localStorage.getItem("adminSession");
+    if (adminSession) {
+      try {
+        const session = JSON.parse(adminSession);
+        if (session.isAdmin && session.email === "methodman@mail.com") {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Failed to parse admin session:", error);
+      }
+    }
+  }, []);
 
   const navItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: "🎵" },
@@ -151,8 +168,16 @@ function Header({ currentPage, setCurrentPage }: {
   ];
   
   // Only show admin page to users with admin role
-  if (isAdmin) {
-    navItems.push({ id: "admin" as const, label: "Admin", icon: "⚙️" });
+  const adminSession = localStorage.getItem("adminSession");
+  if (adminSession) {
+    try {
+      const session = JSON.parse(adminSession);
+      if (session.isAdmin && session.email === "methodman@mail.com") {
+        navItems.push({ id: "admin" as const, label: "Admin", icon: "⚙️" });
+      }
+    } catch (error) {
+      console.error("Failed to parse admin session:", error);
+    }
   }
 
   return (
@@ -184,10 +209,13 @@ function Header({ currentPage, setCurrentPage }: {
               {user?.email}
             </span>
             <button
-              onClick={() => window.location.href = "/user/profile"}
-              className="px-4 py-2 rounded bg-white text-gray-900 border border-gray-200 font-semibold hover:bg-gray-50 transition-colors shadow-sm hover:shadow"
+              onClick={() => {
+                localStorage.removeItem("adminSession");
+                window.location.href = "/sign-in";
+              }}
+              className="px-4 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors shadow-sm hover:shadow"
             >
-              Profile
+              Logout
             </button>
           </div>
         </div>
