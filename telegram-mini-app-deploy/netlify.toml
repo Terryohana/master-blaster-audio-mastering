@@ -1,0 +1,9 @@
+[build]
+  publish = "/"
+
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: telegram.org *.telegram.org; connect-src 'self' telegram.org *.telegram.org; img-src 'self' data: blob: telegram.org *.telegram.org;"
+    X-Frame-Options = "ALLOW-FROM https://web.telegram.org/"
