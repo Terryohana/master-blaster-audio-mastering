@@ -4,13 +4,17 @@ import { ConvexReactClient } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useAction, ConvexProvider } from "convex/react";
 
-// Initialize Convex client
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+// Initialize Convex client with fallback URL
+const convexUrl = import.meta.env.VITE_CONVEX_URL || "https://famous-scorpion-680.convex.cloud";
+const convex = new ConvexReactClient(convexUrl);
 
 // Clerk-Convex provider component
 export function ClerkProviderWithConvex({ children }: { children: ReactNode }) {
+  // Fallback for Clerk publishable key
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || "pk_test_c3VyZS10ZXJyYXBpbi0xNS5jbGVyay5hY2NvdW50cy5kZXYk";
+  
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={clerkKey}>
       <ConvexProvider client={convex}>
         <UserSynchronizer>{children}</UserSynchronizer>
       </ConvexProvider>

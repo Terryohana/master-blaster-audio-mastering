@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Blaster Audio Mastering</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --dark: #1e293b;
+      --darker: #0f172a;
+      --light: #f8fafc;
+      --gray: #64748b;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, var(--dark), var(--darker));
+      color: var(--light);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    
+    header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    
+    .logo span {
+      background-color: var(--primary);
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      margin-left: 0.5rem;
+    }
+    
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .btn-outline {
+      color: white;
+    }
+    
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    
+    .hero h2 {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--gray);
+      max-width: 36rem;
+      margin: 0 auto 2.5rem;
+    }
+    
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .hero-btn {
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 1.125rem;
+    }
+    
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .feature {
+      background-color: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    
+    .feature:hover {
+      transform: scale(1.05);
+      border-color: var(--primary);
+    }
+    
+    .feature-icon {
+      color: var(--primary);
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .feature p {
+      color: var(--gray);
+      font-size: 0.875rem;
+    }
+    
+    footer {
+      border-top: 1px solid rgba(100, 116, 139, 0.3);
+      padding: 2rem;
+      margin-top: 4rem;
+      text-align: center;
+      color: var(--gray);
+    }
+    
+    @media (max-width: 768px) {
+      .features {
+        flex-direction: column;
+      }
+      
+      .hero h2 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>Master Blaster</h1>
+      <span>BETA</span>
+    </div>
+    <div class="nav-buttons">
+      <a href="/" class="btn btn-outline">Sign In</a>
+      <a href="/" class="btn btn-primary">Register</a>
+    </div>
+  </header>
+  
+  <main>
+    <section class="hero">
+      <h2>Professional Audio Mastering <span style="color: var(--primary);">Made Simple</span></h2>
+      <p>Master your tracks with AI-powered audio processing. Get studio-quality sound in minutes, not months.</p>
+      <div class="hero-buttons">
+        <a href="/" class="btn btn-primary hero-btn">Get Started Free</a>
+        <a href="/" class="btn btn-outline hero-btn">Try Demo</a>
+      </div>
+    </section>
+    
+    <section class="features">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M3 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="17" cy="5" r="2" fill="currentColor"/>
+            <circle cx="7" cy="12" r="2" fill="currentColor"/>
+            <circle cx="12" cy="19" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3>Professional EQ</h3>
+        <p>7-band equalizer with studio-quality presets designed by audio professionals.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M4 12C4 8.13401 7.13401 5 11 5C14.866 5 18 8.13401 18 12C18 15.866 14.866 19 11 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <h3>Dynamic Compression</h3>
+        <p>SSL-style compressor with presets for streaming platforms like Spotify and YouTube.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <h3>Real-time Processing</h3>
+        <p>Hear changes instantly as you adjust settings, with visual feedback through our VU meters.</p>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <p>© 2023 Master Blaster. All rights reserved.</p>
+  </footer>
+</body>
+</html>
