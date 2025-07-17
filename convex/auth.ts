@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -42,6 +42,44 @@ export const getUser = query({
       email: identity.email,
       name: identity.name,
     };
+  },
+});
+
+// Sync user data from Clerk to Convex
+export const syncUser = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const { tokenIdentifier, email, name } = identity;
+
+    // Check if user exists
+    const existingUser = await ctx.runQuery(api.users.getUserByToken, { tokenIdentifier });
+
+    if (existingUser) {
+      // Update user's last sign in time
+      await ctx.runMutation(api.users.updateUser, {
+        userId: existingUser._id,
+        lastSignIn: Date.now()
+      });
+    } else {
+      // Create new user
+      const userId = await ctx.runMutation(api.users.createUser, {
+        tokenIdentifier,
+        email: email || "",
+        name: name || "User"
+      });
+
+      // Create user profile with free tier
+      await ctx.runMutation(api.users.createUserProfile, {
+        userId,
+        role: "user",
+        subscriptionTier: "free"
+      });
+    }
   },
 });
 

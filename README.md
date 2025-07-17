@@ -1,28 +1,33 @@
 # Master Blaster Audio Mastering App
-  
-This is a project built with [Chef](https://chef.convex.dev) using [Convex](https://convex.dev) as its backend.
-  
-This project is connected to the Convex deployment named [`famous-scorpion-680`](https://dashboard.convex.dev/d/famous-scorpion-680).
-  
-## Project structure
-  
-The frontend code is in the `app` directory and is built with [Vite](https://vitejs.dev/).
-  
-The backend code is in the `convex` directory.
-  
-`npm run dev` will start the frontend and backend servers.
 
-## App authentication
+A professional audio mastering application that allows users to process audio tracks with high-quality EQ, compression, and other audio effects. The application provides both real-time processing and offline rendering capabilities.
 
-Chef apps use [Convex Auth](https://auth.convex.dev/) with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
+## Features
 
-## Developing and deploying your app
+- **Professional EQ**: 7-band equalizer with studio-quality presets designed by audio professionals
+- **Dynamic Compression**: SSL-style compressor with presets for streaming platforms like Spotify and YouTube
+- **Real-time Processing**: Hear changes instantly as you adjust settings, with visual feedback through VU meters
+- **Project Management**: Save and load projects with all settings
+- **Offline Rendering**: Process and download high-quality WAV files
 
-Check out the [Convex docs](https://docs.convex.dev/) for more information on how to develop with Convex.
-* If you're new to Convex, the [Overview](https://docs.convex.dev/understanding/) is a good place to start
-* Check out the [Hosting and Deployment](https://docs.convex.dev/production/) docs for how to deploy your app
-* Read the [Best Practices](https://docs.convex.dev/understanding/best-practices/) guide for tips on how to improve you app further
+## Technology Stack
 
-## HTTP API
+- **Frontend**: React 19, Vite, Tailwind CSS
+- **Backend**: Convex (BaaS)
+- **Authentication**: Clerk
+- **Audio Processing**: Web Audio API
 
-User-defined http routes are defined in the `convex/router.ts` file. We split these routes into a separate file from `convex/http.ts` to allow us to prevent the LLM from modifying the authentication routes.
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Create a `.env.local` file with your Convex and Clerk credentials
+4. Start the development server: `npm run dev`
+
+## Deployment
+
+This project is deployed on Netlify and uses Convex for the backend.
+
+## License
+
+All rights reserved.

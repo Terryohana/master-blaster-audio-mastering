@@ -23,6 +23,36 @@ export const getCurrentUser = query({
   },
 });
 
+// Get user by token identifier
+export const getUserByToken = query({
+  args: {
+    tokenIdentifier: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", args.tokenIdentifier)
+      )
+      .first();
+  },
+});
+
+// Get user by token identifier
+export const getUserByToken = query({
+  args: {
+    tokenIdentifier: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", args.tokenIdentifier)
+      )
+      .first();
+  },
+});
+
 // Create a new user from Clerk data
 export const createUser = mutation({
   args: {

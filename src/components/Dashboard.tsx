@@ -47,7 +47,10 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
               </p>
             </div>
             <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              <span className="text-xl">📊</span>
+              <svg className="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 14L11 10L15 14L21 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -61,7 +64,9 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
               </p>
             </div>
             <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              <span className="text-xl">💎</span>
+              <svg className="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -75,7 +80,11 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
               </p>
             </div>
             <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              <span className="text-xl">🎼</span>
+              <svg className="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18V5L21 3V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -102,9 +111,21 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
       {/* Live EQ Quick Access */}
       <div className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700 mb-8">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-2xl font-bold text-white mb-2">🎛️ Live Audio Processing</h3>
-            <p className="text-gray-300">Process audio in real-time with professional EQ and compression</p>
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <svg className="w-10 h-10 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="17" cy="5" r="2" fill="currentColor"/>
+                <circle cx="7" cy="12" r="2" fill="currentColor"/>
+                <circle cx="12" cy="19" r="2" fill="currentColor"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-2">Live Audio Processing</h3>
+              <p className="text-gray-300">Process audio in real-time with professional EQ and compression</p>
+            </div>
           </div>
           <button 
             onClick={() => navigateToProcessor({ projectName: "", projectId: null })}
@@ -156,8 +177,16 @@ export function Dashboard({ setCurrentPage, navigateToProcessor }) {
                   }`}>
                     {project.status}
                   </span>
-                  <span className="text-blue-400 text-sm">
-                  🎛️ Live EQ
+                  <span className="text-blue-400 text-sm flex items-center gap-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M3 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <circle cx="17" cy="5" r="2" fill="currentColor"/>
+                      <circle cx="7" cy="12" r="2" fill="currentColor"/>
+                      <circle cx="12" cy="19" r="2" fill="currentColor"/>
+                    </svg>
+                    Live EQ
                   </span>
                 </div>
               </div>

@@ -1303,9 +1303,19 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-medium text-gray-300">Live EQ Processing</h4>
                 {isLiveEQEnabled ? (
-                  <span className="text-green-400">🎛️</span>
+                  <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M3 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="17" cy="5" r="2" fill="currentColor"/>
+                    <circle cx="7" cy="12" r="2" fill="currentColor"/>
+                    <circle cx="12" cy="19" r="2" fill="currentColor"/>
+                  </svg>
                 ) : (
-                  <span className="text-red-400">🛑</span>
+                  <svg className="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 )}
                 {isLiveEQEnabled && (
                   <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
@@ -1687,7 +1697,11 @@ export default function LiveAudioProcessorDual({ projectName = "", projectId = n
                   disabled={!isLiveEQEnabled}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{preset.icon}</span>
+                    <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 4V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M4 12C4 8.13401 7.13401 5 11 5C14.866 5 18 8.13401 18 12C18 15.866 14.866 19 11 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
                     <span className="font-medium text-sm text-white">{preset.name}</span>
                   </div>
                   <div className="text-xs text-gray-500">{preset.description}</div>

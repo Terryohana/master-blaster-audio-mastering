@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Blaster MCP Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #0066cc;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 10px;
+    }
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .output {
+      background-color: #f0f8ff;
+      border-left: 4px solid #0066cc;
+      padding: 10px 15px;
+      margin: 20px 0;
+    }
+    .step {
+      margin-top: 30px;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+    }
+    button {
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 20px 0;
+    }
+    button:hover {
+      background-color: #0055aa;
+    }
+    .response {
+      background-color: #e6f7ff;
+      border-left: 4px solid #1890ff;
+      padding: 10px 15px;
+      margin: 10px 0;
+    }
+    .context {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Master Blaster MCP Demo</h1>
+  
+  <p>This demo shows how the Model Context Protocol (MCP) implementation works with Amazon Q for the Master Blaster Audio Mastering App.</p>
+  
+  <button id="runDemo">Run MCP Demo</button>
+  
+  <div id="output"></div>
+  
+  <script type="module">
+    import { MasterBlasterMCP } from './amazon-q-mcp.js';
+    
+    // Create a simple mock for Amazon Q API responses
+    const mockAmazonQResponse = (query) => {
+      // Simulate different responses based on the query
+      if (query.includes("muddiness")) {
+        return {
+          content: "Based on your current EQ settings and the audio analysis, I notice there's some muddiness in the 250-350Hz range. To reduce this, I recommend making the following adjustments to your EQ:\n\n1. Apply a deeper cut around 300Hz, try -4 to -6dB with a medium Q value (1.0-1.5)\n2. You could also try a slight cut around 500Hz to improve clarity\n3. Consider boosting slightly at 3-5kHz to bring out vocal presence\n\nYour current -3dB cut at 400Hz is a good start, but you might want to widen the Q value or center it closer to 300Hz where the analysis shows more muddiness.",
+          metadata: {
+            model: "amazon-q",
+            tokensUsed: 150
+          }
+        };
+      } else if (query.includes("EQ settings")) {
+        return {
+          content: "Looking at your current EQ settings and considering our previous discussion about muddiness, I recommend these specific adjustments:\n\n1. Change your 400Hz filter from -3dB to -5dB and center it at 320Hz instead\n2. Widen the Q value from 1.2 to 1.5 to cover more of the muddy frequency range\n3. Add a gentle high-pass filter at around 80Hz (if you don't need deep bass in the vocals)\n4. Your 3kHz boost of 2dB is good for presence, but consider adding another gentle boost around 5kHz for clarity\n\nThese changes should directly address the muddiness issue we discussed while maintaining the overall tonal balance of your vocal track.",
+          metadata: {
+            model: "amazon-q",
+            tokensUsed: 180
+          }
+        };
+      } else if (query.includes("compressor")) {
+        return {
+          content: "For your vocal track with the current settings, I recommend adjusting your compressor as follows:\n\n1. Your threshold of -24dB is appropriate given the peak level of -3.2dB and RMS of -18.5dB\n2. Consider reducing the ratio from 4:1 to 2.5:1 or 3:1 for more natural-sounding vocals\n3. Your attack time of 3ms is good, but you might try 5ms to let more transients through\n4. Increase the release time from 0.25s to 0.3-0.4s for smoother results with vocals\n5. The knee setting of 6dB is good for vocals\n\nThese settings should provide more natural compression while still controlling the dynamics effectively for your vocal track.",
+          metadata: {
+            model: "amazon-q",
+            tokensUsed: 160
+          }
+        };
+      } else {
+        return {
+          content: `Here's my response to your question: "${query}"`,
+          metadata: {
+            model: "amazon-q",
+            tokensUsed: 50
+          }
+        };
+      }
+    };
+
+    document.getElementById('runDemo').addEventListener('click', async () => {
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = '<h2>Running MCP Demo...</h2>';
+      
+      try {
+        // Initialize the MCP
+        const mcp = new MasterBlasterMCP();
+        
+        // Step 1: Set up app state context
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>1. Setting up application state context</h3>
+            <pre>
+const appState = {
+  activeAudioMode: 'eq',
+  isPlaying: true,
+  currentTime: 45.2,
+  audioFile: 'vocals-take3.wav',
+  isLiveEQEnabled: true,
+  projectData: {
+    name: "Vocal Mix Session",
+    sampleRate: 48000,
+    bitDepth: 24
+  }
+};
+
+mcp.updateAppState(appState);
+            </pre>
+          </div>
+        `;
+        
+        mcp.updateAppState({
+          activeAudioMode: 'eq',
+          isPlaying: true,
+          currentTime: 45.2,
+          audioFile: 'vocals-take3.wav',
+          isLiveEQEnabled: true,
+          projectData: {
+            name: "Vocal Mix Session",
+            sampleRate: 48000,
+            bitDepth: 24
+          }
+        });
+        
+        // Step 2: Add audio processing context
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>2. Adding audio processing context</h3>
+            <pre>
+const audioProcessing = {
+  eqSettings: [
+    { frequency: 100, gain: 2, Q: 1, type: "lowshelf" },
+    { frequency: 400, gain: -3, Q: 1.2, type: "peaking" },
+    { frequency: 1000, gain: -1, Q: 1, type: "peaking" },
+    { frequency: 3000, gain: 2, Q: 0.8, type: "peaking" },
+    { frequency: 10000, gain: 3, Q: 1, type: "highshelf" }
+  ],
+  compressorSettings: {
+    threshold: -24,
+    ratio: 4,
+    attack: 0.003,
+    release: 0.25,
+    knee: 6
+  },
+  audioAnalysis: {
+    peakLevel: -3.2,
+    rmsLevel: -18.5,
+    crestFactor: 15.3,
+    spectralCentroid: 2450,
+    lowEndIssues: "Some muddiness around 250-350Hz"
+  }
+};
+
+mcp.updateAudioProcessing(audioProcessing);
+            </pre>
+          </div>
+        `;
+        
+        mcp.updateAudioProcessing({
+          eqSettings: [
+            { frequency: 100, gain: 2, Q: 1, type: "lowshelf" },
+            { frequency: 400, gain: -3, Q: 1.2, type: "peaking" },
+            { frequency: 1000, gain: -1, Q: 1, type: "peaking" },
+            { frequency: 3000, gain: 2, Q: 0.8, type: "peaking" },
+            { frequency: 10000, gain: 3, Q: 1, type: "highshelf" }
+          ],
+          compressorSettings: {
+            threshold: -24,
+            ratio: 4,
+            attack: 0.003,
+            release: 0.25,
+            knee: 6
+          },
+          audioAnalysis: {
+            peakLevel: -3.2,
+            rmsLevel: -18.5,
+            crestFactor: 15.3,
+            spectralCentroid: 2450,
+            lowEndIssues: "Some muddiness around 250-350Hz"
+          }
+        });
+        
+        // Step 3: Add user context
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>3. Adding user context</h3>
+            <pre>
+const userContext = {
+  preferences: {
+    defaultEQPreset: "Vocal Clarity",
+    preferredCompressorModel: "Opto",
+    theme: "dark"
+  },
+  recentProjects: [
+    "Vocal Mix Session",
+    "Drum Processing",
+    "Full Band Master"
+  ],
+  savedPresets: [
+    { name: "Vocal Clarity", type: "eq" },
+    { name: "Drum Punch", type: "compressor" },
+    { name: "Mastering Chain", type: "chain" }
+  ]
+};
+
+mcp.updateUserContext(userContext);
+            </pre>
+          </div>
+        `;
+        
+        mcp.updateUserContext({
+          preferences: {
+            defaultEQPreset: "Vocal Clarity",
+            preferredCompressorModel: "Opto",
+            theme: "dark"
+          },
+          recentProjects: [
+            "Vocal Mix Session",
+            "Drum Processing",
+            "Full Band Master"
+          ],
+          savedPresets: [
+            { name: "Vocal Clarity", type: "eq" },
+            { name: "Drum Punch", type: "compressor" },
+            { name: "Mastering Chain", type: "chain" }
+          ]
+        });
+        
+        // Step 4: First query to Amazon Q
+        const question1 = "How can I reduce the muddiness in my vocal track?";
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>4. First query to Amazon Q</h3>
+            <p>User question: <strong>"${question1}"</strong></p>
+            
+            <h4>Context sent to Amazon Q:</h4>
+            <div class="context">
+              <pre>${JSON.stringify(await mcp.queryAmazonQ(question1), null, 2)}</pre>
+            </div>
+          </div>
+        `;
+        
+        // Mock response from Amazon Q
+        const response1 = mockAmazonQResponse(question1);
+        mcp.handleResponse(response1);
+        
+        outputDiv.innerHTML += `
+          <div class="response">
+            <h4>Amazon Q response:</h4>
+            <p>${response1.content.replace(/\n/g, '<br>')}</p>
+          </div>
+        `;
+        
+        // Step 5: Follow-up question
+        const question2 = "What EQ settings should I adjust specifically?";
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>5. Follow-up question (showing conversation context)</h3>
+            <p>User question: <strong>"${question2}"</strong></p>
+            
+            <h4>Context sent to Amazon Q (notice the conversation history is included):</h4>
+            <div class="context">
+              <pre>${JSON.stringify(await mcp.queryAmazonQ(question2), null, 2)}</pre>
+            </div>
+          </div>
+        `;
+        
+        // Mock response from Amazon Q
+        const response2 = mockAmazonQResponse(question2);
+        mcp.handleResponse(response2);
+        
+        outputDiv.innerHTML += `
+          <div class="response">
+            <h4>Amazon Q response:</h4>
+            <p>${response2.content.replace(/\n/g, '<br>')}</p>
+          </div>
+        `;
+        
+        // Step 6: Demonstrate context prioritization
+        const question3 = "How should I set the compressor for these vocals?";
+        outputDiv.innerHTML += `
+          <div class="step">
+            <h3>6. Demonstrating context prioritization with limited tokens</h3>
+            <p>User question: <strong>"${question3}"</strong></p>
+            <p><em>Forcing a smaller context window (1000 tokens instead of 7000)</em></p>
+            
+            <h4>Context sent to Amazon Q (with limited token budget):</h4>
+            <div class="context">
+              <pre>${JSON.stringify(await mcp.queryAmazonQ(question3, 1000), null, 2)}</pre>
+            </div>
+            <p><strong>Notice how only high-priority context is included when tokens are limited</strong></p>
+          </div>
+        `;
+        
+        // Mock response from Amazon Q
+        const response3 = mockAmazonQResponse(question3);
+        mcp.handleResponse(response3);
+        
+        outputDiv.innerHTML += `
+          <div class="response">
+            <h4>Amazon Q response:</h4>
+            <p>${response3.content.replace(/\n/g, '<br>')}</p>
+          </div>
+          
+          <div class="step">
+            <h3>Demo Complete</h3>
+            <p>This demonstrates how the MCP implementation provides relevant context to Amazon Q, enabling it to give specific, helpful responses about your audio mastering project.</p>
+          </div>
+        `;
+        
+      } catch (error) {
+        outputDiv.innerHTML += `
+          <div style="color: red; padding: 20px; border: 1px solid red;">
+            <h3>Error running demo</h3>
+            <p>${error.message}</p>
+            <pre>${error.stack}</pre>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
